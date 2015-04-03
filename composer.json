@@ -1,0 +1,24 @@
+{
+    "name": "kfreiman/yii2-lightncandy",
+    "description": "The LightnCandy integration for the Yii2 framework.",
+    "keywords": ["yii2", "lightncandy", "php", "renderer", "handlebars", "mustache", "PHP", "template", "logicless"],
+    "type": "yii2-extension",
+    "license": "MIT",
+    "support": {
+        "issues": "https://github.com/kfreiman/yii2-lightncandy/issues",
+        "source": "https://github.com/kfreiman/yii2-lightncandy"
+    },
+    "authors": [
+        {
+            "name": "Kirill Freiman",
+            "email": "k.freiman@ya.ru"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "*",
+        "zordius/lightncandy": "*"
+    },
+    "autoload": {
+        "psr-4": { "kfreiman\\lightncandy\\": "" }
+    }
+}
