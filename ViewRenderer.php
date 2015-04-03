@@ -43,17 +43,11 @@ class ViewRenderer extends BaseViewRenderer
      */
     public function render($view, $file, $params)
     {
-        // $this->handlebars->setLoader(new Handlebars\Loader\FilesystemLoader(dirname($file), ['extension' => $this->extension]));
-        // $this->twig->addGlobal('this', $view);
-        // $loader = new \Twig_Loader_Filesystem(dirname($file));
-        // $this->addAliases($loader, Yii::$aliases);
-        // $this->twig->setLoader($loader);
+
 
         $phpStr = LightnCandy::compile(pathinfo($file, PATHINFO_BASENAME));  // compiled PHP code in $phpStr
         $renderer = LightnCandy::prepare($phpStr);
 
         return $renderer($params);
-
-        // return $this->handlebars->render(pathinfo($file, PATHINFO_BASENAME), $params);
     }
 }
