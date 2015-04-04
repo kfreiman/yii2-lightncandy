@@ -10,23 +10,38 @@ namespace kfreiman\lightncandy;
 use Yii;
 use yii\base\View;
 use yii\base\ViewRenderer as BaseViewRenderer;
-use Handlebars;
+use LightnCandy;
 
-/**
- *
- */
+
 class ViewRenderer extends BaseViewRenderer
 {
 
     public $options = [];
 
-    public $lightncandy;
+    public $basedir; // only dirname($file) by default
+
+    public $cache_preffix = 'LightnCandy_';
+
+    public $extension = ['.handlebars', '.mustache'];
+
+    public $flags =
+        LightnCandy::FLAG_INSTANCE |
+        LightnCandy::FLAG_NOESCAPE |
+        LightnCandy::FLAG_SPVARS |
+        LightnCandy::FLAG_RUNTIMEPARTIAL |
+        LightnCandy::FLAG_HANDLEBARSJS
+    ;
 
     public function init()
     {
+        if (YII_ENV_DEV) {
+            $this->flags = $this->flags |
+                LightnCandy::FLAG_ERROR_EXCEPTION |
+                LightnCandy::FLAG_RENDER_DEBUG
+            ;
+        }
 
-
-        // $this->lightncandy = new \LightnCandy($options);
+        $this->flags = $this->flags | LightnCandy::FLAG_BARE;
     }
 
     /**
@@ -43,11 +58,63 @@ class ViewRenderer extends BaseViewRenderer
      */
     public function render($view, $file, $params)
     {
+        $this->basedir[] = dirname($file);
 
-
-        $phpStr = LightnCandy::compile(pathinfo($file, PATHINFO_BASENAME));  // compiled PHP code in $phpStr
-        $renderer = LightnCandy::prepare($phpStr);
+        $renderer = $this->getTemplateRenderer($file);
 
         return $renderer($params);
+    }
+
+
+    protected function getTemplateRenderer($file)
+    {
+        // include all {{> partials }}
+        $content = $this->includePartial($file);
+
+        $hash = md5($content);
+        $key = $this->cache_preffix.$hash;
+
+        $phpStr = Yii::$app->cache->get($key);
+
+        if ($phpStr === false) {
+            $phpStr = $this->getPhpStr($file);
+            Yii::$app->cache->set($key, $phpStr);
+        }
+
+        return eval($phpStr.';');
+    }
+
+
+    protected function getPhpStr($file)
+    {
+        return LightnCandy::compile(
+            '{{>'. pathinfo($file, PATHINFO_FILENAME) .'}}', // render as partial
+            [
+                'flags' => $this->flags,
+                'basedir' => $this->basedir,
+                'fileext' => $this->extension,
+            ] + $this->options
+        );
+    }
+
+
+    protected function includePartial($file)
+    {
+        $content = file_get_contents($file);
+        return preg_replace_callback('/{{>(.+)}}/', [$this, "getPartial"], $content);
+    }
+
+
+    protected function getPartial($matchs)
+    {
+        $partName = trim($matchs[1]);
+        foreach ($this->basedir as $dir) {
+            foreach ($this->extension as $ext) {
+                $fn = "$dir/$partName$ext";
+                if (file_exists($fn)) {
+                    return $this->includePartial($fn);
+                }
+            }
+        }
     }
 }
