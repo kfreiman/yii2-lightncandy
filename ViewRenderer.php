@@ -24,24 +24,24 @@ class ViewRenderer extends BaseViewRenderer
 
     public $extension = ['.handlebars', '.mustache'];
 
-    public $flags =
-        LightnCandy::FLAG_INSTANCE |
-        LightnCandy::FLAG_NOESCAPE |
-        LightnCandy::FLAG_SPVARS |
-        LightnCandy::FLAG_RUNTIMEPARTIAL |
-        LightnCandy::FLAG_HANDLEBARSJS
-    ;
+    public $flags;
 
     public function init()
     {
         if (YII_ENV_DEV) {
             $this->flags = $this->flags |
-                LightnCandy::FLAG_ERROR_EXCEPTION |
-                LightnCandy::FLAG_RENDER_DEBUG
+                LightnCandy::FLAG_ERROR_EXCEPTION
+                // | LightnCandy::FLAG_RENDER_DEBUG
             ;
         }
 
-        $this->flags = $this->flags | LightnCandy::FLAG_BARE;
+        $this->flags = $this->flags |
+            LightnCandy::FLAG_INSTANCE |
+            LightnCandy::FLAG_NOESCAPE |
+            LightnCandy::FLAG_SPVARS |
+            LightnCandy::FLAG_RUNTIMEPARTIAL |
+            LightnCandy::FLAG_HANDLEBARSJS |
+            LightnCandy::FLAG_BARE;
     }
 
     /**
@@ -69,17 +69,25 @@ class ViewRenderer extends BaseViewRenderer
     protected function getTemplateRenderer($file)
     {
         // include all {{> partials }}
-        $content = $this->includePartial($file);
+        // $content = $this->includePartial($file);
+        // var_dump($content);
+        // $hash = md5($content);
+        // $key = $this->cache_preffix.$hash;
 
-        $hash = md5($content);
-        $key = $this->cache_preffix.$hash;
+        // $phpStr = Yii::$app->cache->get($key);
 
-        $phpStr = Yii::$app->cache->get($key);
 
-        if ($phpStr === false) {
+
+
+
+        // if ($phpStr === false) {
             $phpStr = $this->getPhpStr($file);
-            Yii::$app->cache->set($key, $phpStr);
-        }
+            // $phpStr = file_get_contents(dirname(__FILE__).'/test.php');
+
+            // echo $this->getPhpStr($file);
+            // exit;
+        //     Yii::$app->cache->set($key, $phpStr);
+        // }
 
         return eval($phpStr.';');
     }
@@ -101,16 +109,18 @@ class ViewRenderer extends BaseViewRenderer
     protected function includePartial($file)
     {
         $content = file_get_contents($file);
-        return preg_replace_callback('/{{>(.+)}}/', [$this, "getPartial"], $content);
+        return preg_replace_callback('/{{>(.{1,})}}/', [$this, "getPartial"], $content);
     }
 
 
     protected function getPartial($matchs)
     {
+        var_dump('expression');
         $partName = trim($matchs[1]);
         foreach ($this->basedir as $dir) {
             foreach ($this->extension as $ext) {
                 $fn = "$dir/$partName$ext";
+                var_dump($fn);
                 if (file_exists($fn)) {
                     return $this->includePartial($fn);
                 }
